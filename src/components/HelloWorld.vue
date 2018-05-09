@@ -2,8 +2,15 @@
   <div class="container-fluid">
     <div id="header">
       <div class="container">
-        <br>
-        <a @click="add()">Add Item</a>
+        <div class="columns" >
+          <div class="" id="header-item">
+            <div class="column">
+             <button @click="add()" class="is-success button"> ADD+ </button>
+             <button @click="bill()" class="is-info button"> ออกบิล </button>
+             <button class="is-danger button disabled" disabled="">ราคารวม {{total_price}} </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <br>
@@ -11,10 +18,15 @@
       <div id="wrapper">
         <div id="columns">
           <div class="pin" v-for="(show, index) in data" :key="index">
-            <img :src="show.img" @click="store.dispatch('listPlayer', show)"/>
-            <p>
-              <center><b> {{show.name}} </b> </center><br>
-            </p>
+            <div>
+                <button @click="stock(show)" class="is-warning is-outlined button is-small" style="float:right"> +Stock </button>
+                <img :src="show.img" @click="store.dispatch('listPlayer', show)"/>
+                <center> {{show.name}} <b class="card"> {{show.price}}บาท </b> </center>
+                <center><b> เหลืออยู่ {{show.amout}} จาน</b> </center>
+                <div v-if="show.amout != 0">
+                  <center> <button class="button is-small is-success is-outlined" @click="purches(show)">สั่งซื้อ</button> </center>
+                </div>
+            </div>
           </div>
         </div>
       </div>
@@ -44,7 +56,8 @@ export default {
   data () {
     return {
       msg: 'Welcome to Your Vue.js App',
-      newData: []
+      newData: [],
+      cart: []
     }
   },
   methods: {
@@ -81,12 +94,59 @@ export default {
           })
           dataRef.push({
             name: result.value[0],
-            price: result.value[1],
-            amout: result.value[2],
+            price: parseInt(result.value[1]),
+            amout: parseInt(result.value[2]),
             img: result.value[3]
           })
         }
       })
+    },
+    purches (data) {
+      let newvalue = data.amout - 1
+      dataRef.child(data['.key'] + '/amout').set(newvalue)
+      this.cart.push(data)
+    },
+    bill () {
+      console.log(this.cart)
+      var bill = ''
+      for (var i in this.cart) {
+        bill += this.cart[i].name + ' '
+        bill += this.cart[i].price + ' '
+        bill += 'บาท | '
+      }
+      bill += 'รวม ' + this.total_price + 'บาท'
+      this.$swal({
+        title: 'ร้านร้านป้าตุ๊',
+        text: bill,
+        width: 600,
+        padding: '3em',
+        background: '#fff url(/images/trees.png)',
+        backdrop: `
+          rgba(0,0,123,0.4)
+          url("https://media.giphy.com/media/sIIhZliB2McAo/giphy.gif")
+          center left
+          no-repeat
+        `
+      })
+      this.cart = []
+    },
+    stock (data) {
+      this.$swal({
+        title: 'จำนวนสินค้าใน Stock ที่ค้องการเพิ่ม',
+        input: 'text',
+        showCancelButton: true,
+        confirmButtonText: 'OK'
+      }).then((result) => {
+        if (result.value) {
+          let newvalue = data.amout + parseInt(result.value)
+          dataRef.child(data['.key'] + '/amout').set(newvalue)
+        }
+      })
+    }
+  },
+  computed: {
+    total_price () {
+      return this.cart.reduce((sumPrice, cart) => sumPrice + cart.price, 0)
     }
   }
 }
@@ -117,16 +177,8 @@ export default {
     min-width: 800px;
     margin: 50px auto;
   }
-  #columns {
-      -webkit-column-count: 3;
-      -webkit-column-gap: 10px;
-      -webkit-column-fill: auto;
-      -moz-column-count: 3;
-      -moz-column-gap: 10px;
-      -moz-column-fill: auto;
-      column-count: 3;
-      column-gap: 15px;
-      column-fill: auto;
+  #header-item {
+   margin-top: 27px;
   }
   .pin {
       display: inline-block;
@@ -154,7 +206,7 @@ export default {
   }
   #header {
     background-color: #3543;
-    height: 100px;
+    height: 110px;
   }
   .pin p {
     font: 12px/18px Arial, sans-serif;
